@@ -1,0 +1,22 @@
+- name: 删除 HA 
+  hosts:
+  - lb
+  vars:
+    ha_packages:
+      - "haproxy"
+      - "keepalived"
+  tasks:
+  - name: 停止 haproxy、keepalived 服务
+    systemd: name={{ item }} state=stopped enabled=no
+    with_items:
+      - haproxy
+      - keepalived
+  
+  - name: 删除 haproxy、keepalived 应用
+    yum: name={{ ha_packages }} state=absent
+
+  - name: 删除 haproxy、keepalived 配置文件
+    file: name={{ item }} state=absent
+    with_items:
+      - "/etc/haproxy"
+      - "/etc/keepalived"

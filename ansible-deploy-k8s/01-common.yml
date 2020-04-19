@@ -1,0 +1,7 @@
+- name: 1.系统初始化
+  hosts: 
+  - master
+  - node
+  - etcd
+  roles:
+  - common

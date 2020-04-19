@@ -1,0 +1,26 @@
+- name: 删除 kube-master 集群 
+  hosts:
+  - k8s
+  tasks:
+  - name: stop and disable kube-master service
+    systemd: name={{ item }} state=stopped enabled=no
+    with_items:
+      - kube-apiserver
+      - kube-controller-manager
+      - kube-scheduler
+      - kubelet
+      - kube-proxy
+    ignore_errors: true
+    # when: "inventory_hostname in groups['master']"
+
+  - name: 删除相关文件(证书、配置文件、服务文件) of 'kube-master' nodes
+    file: name={{ item }} state=absent
+    with_items:
+      - "/root/.kube"
+      - "{{ k8s_work_dir }}"
+      - "/usr/lib/systemd/system/kube-apiserver.service"
+      - "/usr/lib/systemd/system/kube-controller-manager.service"
+      - "/usr/lib/systemd/system/kube-scheduler.service"
+      - "/usr/lib/systemd/system/kubelet.service"
+      - "/usr/lib/systemd/system/kube-proxy.service"
+    # when: "inventory_hostname in groups['master']"

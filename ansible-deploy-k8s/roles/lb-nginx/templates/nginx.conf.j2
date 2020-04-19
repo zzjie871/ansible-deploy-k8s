@@ -1,0 +1,21 @@
+user  nginx;
+worker_processes  1;
+
+pid        /var/run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+stream {
+    upstream k8s-apiserver {
+        {% for ip in groups['master'] %}
+        server {{ hostvars[ip].inventory_hostname }}:6443;
+        {% endfor %}
+    }
+    
+    server {
+       listen 8443;
+       proxy_pass k8s-apiserver;
+    }
+}

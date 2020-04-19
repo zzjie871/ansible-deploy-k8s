@@ -1,0 +1,30 @@
+{% set local_ip = inventory_hostname %}
+[Unit]
+Description=Kubernetes Scheduler
+Documentation=https://github.com/kubernetes/kubernetes
+
+[Service]
+ExecStart={{ k8s_work_dir }}/bin/kube-scheduler \
+--bind-address={{ local_ip }} \
+--secure-port=10259 \
+--port=0 \
+--tls-cert-file={{ k8s_work_dir }}/ssl/kube-scheduler.pem \
+--tls-private-key-file={{ k8s_work_dir }}/ssl/kube-scheduler-key.pem \
+--client-ca-file={{ k8s_work_dir }}/ssl/ca.pem \
+--requestheader-allowed-names="" \
+--requestheader-client-ca-file={{ k8s_work_dir }}/ssl/ca.pem \
+--requestheader-extra-headers-prefix="X-Remote-Extra-" \
+--requestheader-group-headers=X-Remote-Group \
+--requestheader-username-headers=X-Remote-User \
+--authorization-kubeconfig={{ k8s_work_dir }}/cfg/kube-scheduler.kubeconfig \
+--authentication-kubeconfig={{ k8s_work_dir }}/cfg/kube-scheduler.kubeconfig \
+--kubeconfig={{ k8s_work_dir }}/cfg/kube-scheduler.kubeconfig \
+--leader-elect=true \
+--logtostderr=true \
+--v=2
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target

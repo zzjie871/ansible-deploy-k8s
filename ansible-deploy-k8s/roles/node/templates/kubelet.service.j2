@@ -1,0 +1,26 @@
+[Unit]
+Description=Kubernetes Kubelet
+After=docker.service
+
+[Service]
+ExecStart={{ k8s_work_dir }}/bin/kubelet \
+--cert-dir={{ k8s_work_dir }}/ssl \
+--bootstrap-kubeconfig={{ k8s_work_dir }}/cfg/kubelet-bootstrap.kubeconfig \
+--kubeconfig={{ k8s_work_dir }}/cfg/kubelet.kubeconfig \
+--config={{ k8s_work_dir }}/cfg/kubelet-config.yml \
+--hostname-override={{ node_name }} \
+{% if CONTAINER_RUNTIME == "containerd" %}
+  --container-runtime=remote \
+  --container-runtime-endpoint=unix:///run/containerd/containerd.sock \
+{% endif %}
+--network-plugin=cni \
+--pod-infra-container-image={{ SANDBOX_IMAGE }} \
+--image-pull-progress-deadline=15m \
+--logtostderr=true \
+--v=4
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

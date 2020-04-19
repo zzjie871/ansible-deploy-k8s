@@ -1,0 +1,13 @@
+# to set up 'kube-master' nodes
+- hosts: master
+  roles:
+  - master
+  #tasks:
+  #- name: Making master nodes SchedulingDisabled
+  #  shell: "kubectl cordon {{ inventory_hostname }} "
+  #  when: "inventory_hostname not in groups['node']"
+  #  ignore_errors: true
+  #
+  #- name: Setting master role name 
+  #  shell: "kubectl label node {{ inventory_hostname }} kubernetes.io/role=master --overwrite"
+  #  ignore_errors: true

@@ -1,0 +1,4 @@
+- name: 部署网络组件
+  hosts: k8s
+  roles:
+  - calico

@@ -1,0 +1,6 @@
+# prepare tasks for all nodes
+- hosts:
+  - master
+  - node
+  roles:
+  - prepare

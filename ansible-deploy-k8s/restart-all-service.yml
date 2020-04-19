@@ -1,0 +1,20 @@
+- hosts: 
+  - master
+  - node
+  tasks:
+  - name: restart master all service
+    systemd: name={{ item }} state=restarted
+    with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    when: "inventory_hostname in groups['master']"
+    ignore_errors: true
+
+  - name: restart node all service
+    systemd: name={{ item }} state=restarted
+    with_items:
+    - kubelet
+    - kube-proxy
+    # when: "inventory_hostname in groups['node']"
+    ignore_errors: true

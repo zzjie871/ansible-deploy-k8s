@@ -1,0 +1,4 @@
+- name: 部署 node work 节点
+  hosts: k8s
+  roles:
+  - node

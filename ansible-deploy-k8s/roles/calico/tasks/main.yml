@@ -1,0 +1,41 @@
+- name: 创建相关目录
+  file: name={{ item }} state=directory
+  with_items:
+  - "/etc/calico/ssl"
+  - "/opt/kube/kube-system"
+
+- name: 分发证书
+  copy: src={{ base_dir }}/ssl/{{ item }} dest=/etc/calico/ssl/{{ item }}
+  with_items:
+    - ca.pem
+    - calico.pem
+    - calico-key.pem
+
+- name: get calico-etcd-secrets info
+  shell: "kubectl get secrets -n kube-system"
+  register: secrets_info
+  run_once: true
+
+# 这里使用的时候 kubernetes 存储 calico 信息；
+# 如果使用 etcd 存储 calico 信息，需要使用这书
+- name: 创建 calico-etcd-secrets
+  shell: "cd /etc/calico/ssl && \
+        kubectl create secret generic -n kube-system calico-etcd-secrets \
+        --from-file=etcd-ca=/etc/calico/ssl/ca.pem \
+        --from-file=etcd-key=/etc/calico/ssl/calico-key.pem \
+        --from-file=etcd-cert=/etc/calico/ssl/calico.pem"
+  when: '"calico-etcd-secrets" not in secrets_info.stdout'
+  run_once: true
+
+- name: 配置 calico DaemonSet yaml文件
+  template: src=calico.yaml.j2 dest=/opt/kube/kube-system/calico.yaml
+
+# 删除原有cni配置
+- name: 删除默认cni配置
+  file: path=/etc/cni/net.d/10-default.conf state=absent
+  ignore_errors: true
+
+# 只需单节点执行一次
+- name: 运行 calico网络
+  shell: "kubectl apply -f /opt/kube/kube-system/calico.yaml"
+  run_once: true

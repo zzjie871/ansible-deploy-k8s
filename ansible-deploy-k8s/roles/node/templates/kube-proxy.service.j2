@@ -1,0 +1,15 @@
+[Unit]
+Description=Kubernetes Proxy
+After=network.target
+
+[Service]
+ExecStart={{ k8s_work_dir }}/bin/kube-proxy \
+--config={{ k8s_work_dir }}/cfg/kube-proxy-config.yml \
+--logtostderr=true \
+--v=2
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,98 @@
+---
+- name: 1.创建工作目录
+  file: dest={{ k8s_work_dir }}/{{ item }} state=directory
+  with_items:
+    - bin
+    - cfg
+    - ssl
+    - logs
+
+- name: 2.创建cni插件目录
+  file: dest={{ item }} state=directory
+  with_items:
+    - /opt/cni/bin
+    - /etc/cni/net.d
+
+- name: 3.创建临时目录
+  file: dest={{ tmp_dir }} state=directory
+
+- name: 2.分发证书工具 cfssl
+  unarchive: src={{ software_dir }}/cfssl.tar.gz dest=/usr/local/bin/ mode=u+x
+
+- name: 2-2.分发并解压k8s二进制包
+  unarchive: src={{ item }} dest={{ tmp_dir }}
+  with_fileglob:
+    - "{{ software_dir }}/kubernetes-*.tar.gz"
+  tags: kube-tools
+
+- name: 2-3.分发 k8s master 二进制文件
+  shell: cp -rf {{ tmp_dir }}/kubernetes/server/bin/{kubelet,kube-proxy} {{ k8s_work_dir }}/bin/
+  tags: kube-tools
+
+- name: 7.分发k8s证书
+  copy: src={{ base_dir }}/ssl/{{ item }} dest={{ k8s_work_dir }}/ssl/{{ item }}
+  with_items:
+    - ca.pem
+    - ca-key.pem
+    - ca-config.json
+    - kube-proxy.pem
+    - kube-proxy-key.pem
+
+- name: 替换 kubeconfig 的 apiserver 地址
+  lineinfile:
+    dest: /root/.kube/config
+    regexp: "^    server"
+    line: "    server: {{ KUBE_APISERVER }}"
+
+##----------kubelet 配置部分--------------
+# 创建 kubelet 相关证书及 kubelet.kubeconfig
+- import_tasks: create-kubelet-kubeconfig.yml
+
+- name: 8.分发k8s配置文件
+  template: src={{ item }}.j2 dest={{ k8s_work_dir }}/cfg/{{ item }}
+  with_items:
+    - kubelet-config.yml
+    - kube-proxy-config.yml
+
+- name: 准备 cni配置文件
+  template: src=cni-default.conf.j2 dest=/etc/cni/net.d/10-default.conf
+  tags: cni_net
+
+# 判断 kubernetes 版本
+- name: 注册变量 TMP_VER
+  shell: "{{ k8s_work_dir }}/bin/kube-apiserver --version|cut -d' ' -f2|cut -d'v' -f2"
+  register: TMP_VER
+  connection: local
+  tags: upgrade_k8s, restart_node
+
+- name: 获取 kubernetes 主版本号
+  set_fact:
+    KUBE_VER: "{{ TMP_VER.stdout.split('.')[0]|int + TMP_VER.stdout.split('.')[1]|int/100 }}"
+  tags: upgrade_k8s, restart_node
+
+- name: debug info
+  debug: var="KUBE_VER"
+
+##-------kube-proxy部分----------------
+- name: 准备 cni配置文件
+  copy: src={{ base_dir }}/ssl/kube-proxy.kubeconfig dest={{ k8s_work_dir }}/cfg/kube-proxy.kubeconfig
+
+#- name: 替换 kube-proxy.kubeconfig 的 apiserver 地址
+#  lineinfile:
+#    dest: "{{ k8s_work_dir }}/cfg/kube-proxy.kubeconfig"
+#    regexp: "^    server"
+#    line: "    server: {{ KUBE_APISERVER }}"
+
+- name: 9.分发service文件
+  template: src={{ item }}.j2 dest=/usr/lib/systemd/system/{{ item }}
+  with_items:
+    - kubelet.service
+    - kube-proxy.service
+  tags: restart_node_service
+
+- name: 10.启动k8s node组件
+  systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
+  with_items:
+    - kubelet
+    - kube-proxy
+  tags: restart_node_service

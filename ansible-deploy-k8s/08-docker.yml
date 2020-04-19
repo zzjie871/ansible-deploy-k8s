@@ -1,0 +1,4 @@
+- name: 部署 docker
+  hosts: k8s
+  roles:
+  - docker

@@ -1,0 +1,4 @@
+- name: 1.自签证书 
+  hosts: localhost 
+  roles:
+    - tls

@@ -1,0 +1,68 @@
+---
+# 系统初始化
+- name: 系统初始化
+  hosts: 
+  - master
+  - node
+  - etcd
+  roles:
+  - common
+
+---
+# 签发组件相关的证书
+- name: 自签证书 
+  hosts: localhost 
+  roles:
+    - tls
+
+---
+# prepare tasks for all nodes
+- name: 分发证书、插件工具和 kubeconfig文件
+  hosts:
+  - master
+  - node
+  roles:
+  - prepare
+
+---
+# 部署 etcd 集群
+- name: 部署 etcd 集群
+  hosts: etcd
+  roles:
+    - etcd
+
+---
+# 部署 nginx + keepalived 作为apiserver 的负载均衡器
+- name: 安装 apiserver 负载均衡器 
+  hosts: lb 
+  roles:
+    # - lb-haproxy # haproxy 需要解决透传问题，暂不在这里使用
+    - lb-nginx
+
+---
+# 部署 kube master 集群
+- name: 部署 master 集群
+  hosts: master
+  roles:
+  - master
+
+---
+# 部署 kube node work 节点
+- name: 部署 node work 节点
+  hosts: k8s
+  roles:
+  - node
+
+---
+# 部署 docker
+- name: 部署 docker
+  hosts: k8s
+  roles:
+  - docker
+
+---
+# 部署 calico 网络组件
+- name: 部署 calico 网络组件
+  hosts: k8s
+  roles:
+  - calico

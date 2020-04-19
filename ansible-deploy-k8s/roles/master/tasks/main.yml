@@ -1,0 +1,81 @@
+---
+- name: 1.k8s 创建工作目录
+  file: dest={{ k8s_work_dir }}/{{ item }} state=directory
+  with_items:
+    - bin
+    - cfg
+    - ssl
+    - logs
+
+- name: 2.创建etcd证书目录
+  file: dest={{ k8s_work_dir }}/ssl/etcd state=directory
+
+- name: 3.创建临时目录
+  file: dest={{ tmp_dir }} state=directory
+
+- block:
+  - name: 生成 basic-auth 随机密码
+    shell: 'PWD=`date +%s%N|md5sum|head -c16`; \
+        sed -i "s/_pwd_/$PWD/g" {{ ansible_dir }}/roles/master/defaults/main.yml; \
+        echo $PWD;'
+    connection: local
+    register: TMP_PASS
+    run_once: true
+    
+  - name: 设置 basic-auth 随机密码
+    set_fact: BASIC_AUTH_PASS={{ TMP_PASS.stdout }}
+  when: 'BASIC_AUTH_ENABLE == "yes" and BASIC_AUTH_PASS == "_pwd_"'
+  tags: restart_master
+
+- name: 创建 basic-auth.csv
+  template: src=basic-auth.csv.j2 dest={{ k8s_work_dir }}/ssl/basic-auth.csv
+  when: 'BASIC_AUTH_ENABLE == "yes"'
+  tags: restart_master
+
+#- name: 替换 kubeconfig 的 apiserver 地址
+#  lineinfile:
+#    dest: "{{ item }}"
+#    regexp: "^    server"
+#    line: "    server: https://{{ inventory_hostname }}:6443"
+#  with_items:
+#  - "/root/.kube/config"
+#  - "{{ k8s_work_dir }}/cfg/kube-controller-manager.kubeconfig"
+#  - "{{ k8s_work_dir }}/cfg/kube-scheduler.kubeconfig"
+#  tags: upgrade_k8s, restart_master
+
+- name: 4.分发并解压k8s二进制包
+  unarchive: src={{ item }} dest={{ tmp_dir }}
+  with_fileglob:
+    - "{{ software_dir }}/kubernetes-*.tar.gz"
+
+- name: 5.分发 k8s master 二进制文件
+  shell: cp -rf {{ tmp_dir }}/kubernetes/server/bin/{kube-apiserver,kube-controller-manager,kube-scheduler} {{ k8s_work_dir }}/bin/
+
+- name: 9.分发service文件
+  template: src={{ item }}.j2 dest=/usr/lib/systemd/system/{{ item }}
+  with_items:
+    - kube-apiserver.service
+    - kube-controller-manager.service
+    - kube-scheduler.service
+
+- name: 10.启动k8s master组件
+  systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+
+- name: 11.查看 master 组件状态
+  shell: "systemctl status kube-apiserver kube-controller-manager kube-scheduler"
+  register: status_result
+- debug: var=status_result.stdout_lines
+
+- name: kube-apiserver-to-kubelet 文件
+  copy: src={{ item }} dest={{ k8s_work_dir }}/ssl/{{ item }}
+  with_items:
+  - kubelet-bootstrap-rbac.yaml
+  - apiserver-to-kubelet-rbac.yaml
+
+- name: 创建 kubelet rbac 权限
+  shell: "kubectl apply -f {{ k8s_work_dir }}/ssl/apiserver-to-kubelet-rbac.yaml &&
+        kubectl apply -f {{ k8s_work_dir }}/ssl/kubelet-bootstrap-rbac.yaml"

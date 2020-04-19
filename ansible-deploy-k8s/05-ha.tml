@@ -1,0 +1,5 @@
+- name: 安装 apiserver 负载均衡器 
+  hosts: lb 
+  roles:
+    # - lb-haproxy # haproxy 需要解决
+    - lb-nginx

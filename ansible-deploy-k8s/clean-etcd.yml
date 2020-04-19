@@ -1,0 +1,16 @@
+---
+- name: 清理 etcd 集群服务
+  hosts:
+  - etcd
+  tasks:
+  - name: stop and disable etcd service
+    systemd: name=etcd state=stopped enabled=no
+    ignore_errors: true
+
+  - name: remove files and dirs
+    file: name={{ item }} state=absent
+    with_items:
+    - "/var/lib/etcd"
+    - "/etc/etcd/"
+    - "/opt/etcd"
+    - "/usr/lib/systemd/system/etcd.service"

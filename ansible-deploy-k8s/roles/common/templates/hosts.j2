@@ -1,0 +1,22 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+# kubernetes 集群 master 节点信息
+{% for host in groups['k8s'] %}
+{{ hostvars[host].inventory_hostname }} {{ hostvars[host].node_name }}
+{% endfor %} 
+
+# kubernetes 集群 node 节点信息
+{% for host in groups['node'] %}
+{{ hostvars[host].inventory_hostname }} {{ hostvars[host].node_name }}
+{% endfor %} 
+
+# etcd 集群主机信息
+{% for host in groups['etcd'] %}
+{{ hostvars[host].inventory_hostname }} {{ hostvars[host].etcd_name }}
+{% endfor %} 
+
+# lb 主机信息
+{% for host in groups['lb'] %}
+{{ hostvars[host].inventory_hostname }} {{ hostvars[host].lb_name }}
+{% endfor %} 

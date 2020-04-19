@@ -1,0 +1,27 @@
+{% set number=cert_hosts.master | length %}
+{
+  "CN": "system:kube-scheduler",
+  "hosts": [
+    "127.0.0.1",
+    {% for ip in cert_hosts.master %}
+      {% if number == loop.index %}
+        "{{ ip }}"
+      {% else %}
+        "{{ ip }}",
+      {% endif %}
+    {% endfor %}
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "ST": "Guangdong",
+      "L": "Guangzhou",
+      "O": "system:kube-scheduler",
+      "OU": "System"
+    }
+  ]
+}

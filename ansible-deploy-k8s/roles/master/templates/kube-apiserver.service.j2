@@ -1,0 +1,47 @@
+{% set local_ip = inventory_hostname %}
+[Unit]
+Description=Kubernetes API Server
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+After=network.target
+
+[Service]
+ExecStart={{ k8s_work_dir }}/bin/kube-apiserver \
+--advertise-address={{ local_ip }} \
+--etcd-cafile={{ k8s_work_dir }}/ssl/ca.pem \
+--etcd-certfile={{ k8s_work_dir }}/ssl/etcd/etcd.pem \
+--etcd-keyfile={{ k8s_work_dir }}/ssl/etcd/etcd-key.pem \
+--etcd-servers={% for host in groups['etcd'] %}https://{{ hostvars[host].inventory_hostname }}:2379{% if not loop.last %},{% endif %}{% endfor %} \
+--bind-address={{ local_ip }} \
+--secure-port=6443 \
+--tls-cert-file={{ k8s_work_dir }}/ssl/kubernetes.pem  \
+--tls-private-key-file={{ k8s_work_dir }}/ssl/kubernetes-key.pem \
+--anonymous-auth=false \
+--client-ca-file={{ k8s_work_dir }}/ssl/ca.pem \
+--enable-bootstrap-token-auth=true\
+--requestheader-allowed-names="aggregator" \
+--requestheader-client-ca-file={{ k8s_work_dir }}/ssl/ca.pem \
+--requestheader-extra-headers-prefix="X-Remote-Extra-" \
+--requestheader-group-headers=X-Remote-Group \
+--requestheader-username-headers=X-Remote-User \
+--service-account-key-file={{ k8s_work_dir }}/ssl/ca-key.pem \
+--authorization-mode=Node,RBAC \
+--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,NodeRestriction \
+--allow-privileged=true \
+--apiserver-count=3 \
+--kubelet-certificate-authority={{ k8s_work_dir }}/ssl/ca.pem \
+--kubelet-client-certificate={{ k8s_work_dir }}/ssl/kubernetes.pem \
+--kubelet-client-key={{ k8s_work_dir }}/ssl/kubernetes-key.pem \
+--kubelet-https=true \
+--proxy-client-cert-file={{ k8s_work_dir }}/ssl/proxy-client.pem \
+--proxy-client-key-file={{ k8s_work_dir }}/ssl/proxy-client-key.pem \
+--service-cluster-ip-range={{ service_cidr }} \
+--service-node-port-range={{ service_nodeport_range }} \
+--logtostderr=true \
+--v=2
+Restart=on-failure
+RestartSec=10
+Type=notify
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

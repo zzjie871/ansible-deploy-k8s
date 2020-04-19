@@ -1,0 +1,15 @@
+# apiserver 基础认证（用户名/密码）配置，详见 master 节点文件‘/etc/kubernetes/ssl/basic-auth.csv’
+# 是否启用基础认证 yes/no
+BASIC_AUTH_ENABLE: 'no'
+# 用户名：
+BASIC_AUTH_USER: 'admin'
+# 密码：初次运行时会生成随机密码
+BASIC_AUTH_PASS: '_pwd_'
+
+# etcd 集群服务地址列表, 根据etcd组成员自动生成
+TMP_ENDPOINTS: "{% for h in groups['etcd'] %}https://{{ h }}:2379,{% endfor %}"
+ETCD_ENDPOINTS: "{{ TMP_ENDPOINTS.rstrip(',') }}" 
+# 设置 dns svc ip (这里选用 SERVICE_CIDR 中第1个IP)
+CLUSTER_KUBERNETES_SVC_IP: "{{ SERVICE_CIDR | ipaddr('net') | ipaddr(1) | ipaddr('address') }}"
+
+KUBE_APISERVER: "https://{{ vip }}:8443"
