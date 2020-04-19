@@ -5,8 +5,8 @@
 ansible host 配置文件
 # cat /etc/ansible/hosts
 [master]
-# 如果部署单Master，只保留一个 Master 节点
-# 默认Naster节点也部署Node组件
+### 如果部署单Master，只保留一个 Master 节点
+### 默认Naster节点也部署Node组件
 172.16.106.187    node_name=master01
 172.16.106.188    node_name=master02
 172.16.106.189    node_name=master03
@@ -22,7 +22,7 @@ ansible host 配置文件
 172.16.106.189    etcd_name=etcd03
 
 [lb]
-# 如果部署单Master，该项忽略
+### 如果部署单Master，该项忽略
 172.16.106.187 lb_name=lb-master LB_ROLE=master EX_APISERVER_VIP=172.16.106.198 EX_APISERVER_PORT=8443
 172.16.106.188 lb_name=lb-backup LB_ROLE=backup EX_APISERVER_VIP=172.16.106.198 EX_APISERVER_PORT=8443
 
@@ -32,7 +32,7 @@ node
 
 环境变量配置文件，放在与 roles 同级目录的 group_vars 下
 # cat group_vars/all.yml 
-# 安装目录
+### 安装目录
 ansible_dir: '/app/ansible/deploy_k8s'        # ansible roles 文件目录
 software_dir: '/root/software/binary_pkg'     # 提前准备二进制包
 base_dir: '/opt/work'                         # ansible   
@@ -40,21 +40,21 @@ k8s_work_dir: '/opt/kubernetes'               # kubernetes 组件工作目录，
 etcd_work_dir: '/opt/etcd'                    # etcd 组件工作目录
 tmp_dir: '/tmp/k8s'                           # 文件分发临时目录
 
-# 证书目录
+### 证书目录
 etcd_ca_dir: '/etc/etcd/ssl'
 
-# 集群网络
+### 集群网络
 service_cidr: '10.254.0.0/16'
 cluster_dns: '10.254.0.2'                     # 与 coredns 中IP一致，并且是service_cidr中的IP
 pod_cidr: '10.10.0.0/16'                      # 与 calico 中网段一致
 service_nodeport_range: '30000-32767'
 cluster_domain: 'cluster.local'
 
-# 高可用，如果部署单Master，该项忽略
+### 高可用，如果部署单Master，该项忽略
 vip: '172.16.106.198'                         # 作为 虚拟地址，apiserver 的代理地址
 nic: 'eth0' 
 
-# 自签证书可信任IP列表，为方便扩展，可添加多个预留IP，添加域名等
+### 自签证书可信任IP列表，为方便扩展，可添加多个预留IP，添加域名等
 cert_hosts:
   master:
     - 172.16.106.187
@@ -84,8 +84,8 @@ $ diff calico.yaml.orig calico.yaml
 >               value: "10.10.0.0/16"           # 修改
 >             - name: IP_AUTODETECTION_METHOD   # 添加
 >               value: "interface=eth.*"        # 添加
-# 将 Pod 网段地址修改为 10.10.0.0/16;
-# calico 自动探查互联网卡，如果有多快网卡，则可以配置用于互联的网络接口命名正则表达式，如上面的 'eth.*'(根据自己服务器的网络接口名修改)；
+### 将 Pod 网段地址修改为 10.10.0.0/16;
+### calico 自动探查互联网卡，如果有多快网卡，则可以配置用于互联的网络接口命名正则表达式，如上面的 'eth.*'(根据自己服务器的网络接口名修改)；
 
 3、容器部分
 注意：使用 containerd 需要添加以下2行；使用 docker 时，不需要添加
